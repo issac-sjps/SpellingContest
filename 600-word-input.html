@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>拼字練習系統（自動換題修正版）</title>
+<title>拼字練習系統（最終版）</title>
 <style>
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
@@ -169,6 +169,23 @@
     cursor: pointer;
   }
 
+  /* 左側底部按鈕黑底區 */
+  .down {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 30px;
+    padding-bottom: 20px;
+  }
+  .down button {
+    padding: 10px 20px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #fff;
+  }
 </style>
 </head>
 <body>
@@ -196,6 +213,13 @@
       <p>正確率：<span id="stat-accuracy">0</span>%</p>
       <div class="progress-container"><div class="progress-bar" id="progress-bar"></div></div>
     </div>
+
+    <!-- 左側底部按鈕黑底區 -->
+    <div class="down">
+      <button onclick="window.open('https://issac-sjps.github.io/SpellingContest/', '_blank')" style="background:#3399ff;">首頁</button>
+      <button onclick="window.open('https://issac-sjps.github.io/SpellingContest/600-word-input', '_blank')" style="background:#28a745;">拼單字輸入</button>
+    </div>
+
   </div>
 
   <!-- 右側：歷史紀錄 + 題庫管理 -->
@@ -896,8 +920,7 @@ function renderInputBoxes(word) {
 
 function clearInputs() {
   document.querySelectorAll(".letter-box").forEach(i => i.value = "");
-  const first = document.querySelector(".letter-box");
-  if (first) first.focus();
+  document.querySelector(".letter-box")?.focus();
   document.getElementById("resultMsg").textContent = "";
 }
 
@@ -912,29 +935,26 @@ function checkAnswer() {
   const inputs = document.querySelectorAll(".letter-box");
   const answer = Array.from(inputs).map(i => i.value.toLowerCase()).join("");
   const correctWord = currentWord.en.toLowerCase();
-  total++;
 
+  total++;
   if (answer === correctWord) {
     correct++;
     document.getElementById("resultMsg").textContent = "✅ 正確！";
     inputs.forEach(i => i.classList.add("correct"));
-    history.push({ zh: currentWord.zh, en: currentWord.en, ok: true });
-    saveAll();
-    updateHistory();
-    updateStats();
-    setTimeout(() => nextWord(), 700); // ✅ 正確自動換題（延遲0.7秒）
+    setTimeout(nextWord, 600); // 自動換下一題
   } else {
     wrong++;
     document.getElementById("resultMsg").textContent = `❌ 錯誤，正確是：${currentWord.en}`;
-    history.push({ zh: currentWord.zh, en: currentWord.en, ok: false });
-    saveAll();
-    updateHistory();
-    updateStats();
   }
+
+  history.push({ zh: currentWord.zh, en: currentWord.en, ok: answer === correctWord });
+  saveAll();
+  updateHistory();
+  updateStats();
 }
 
 function updateStats() {
-  const acc = total ? Math.round((correct / total) * 100) : 0;
+  const acc = total > 0 ? Math.round((correct / total) * 100) : 0;
   document.getElementById("stat-practiced").textContent = total;
   document.getElementById("stat-correct").textContent = correct;
   document.getElementById("stat-wrong").textContent = wrong;

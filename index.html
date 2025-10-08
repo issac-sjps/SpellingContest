@@ -46,6 +46,25 @@
     border: 2px solid #fff; 
     box-shadow: 0 4px 15px rgba(255,255,255,0.1); 
   }
+  
+    /* 左側底部按鈕黑底區 */
+  .down {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 30px;
+    padding-bottom: 20px;
+  }
+  .down button {
+    padding: 10px 20px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #fff;
+  }
+  
   h3 { margin-top: 0; color: #fff; }
   ul { padding-left: 20px; max-height: 160px; overflow-y: auto; margin: 0; color: #fff; }
   ul::-webkit-scrollbar { width: 8px; }
@@ -87,6 +106,13 @@
       </div>
       <p>本輪答題：<span id="stat-round-done">0</span> / <span id="stat-round-total">0</span></p>
     </div>
+	
+	<!-- 左側底部按鈕黑底區 -->
+    <div class="down">
+      <button onclick="window.open('https://issac-sjps.github.io/SpellingContest/', '_blank')" style="background:#3399ff;">首頁</button>
+      <button onclick="window.open('https://issac-sjps.github.io/SpellingContest/600-word-input', '_blank')" style="background:#28a745;">拼單字輸入</button>
+    </div>
+	
   </div>
 
   <!-- 右側歷史紀錄 + 題庫管理 -->
