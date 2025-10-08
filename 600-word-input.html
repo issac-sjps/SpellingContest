@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼字練習系統（自動換題修正版）</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #000;
+    color: #fff;
+    margin: 0;
+    padding: 25px;
+  }
+
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  /* 左側拼字卡 */
+  .card {
+    background: #000;
+    border: 2px solid #fff;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 0 20px rgba(255,255,255,0.1);
+    text-align: center;
+    width: 420px;
+  }
+
+  .meaning {
+    font-size: 28px;
+    color: #a2d2ff;
+    margin-bottom: 20px;
+  }
+
+  .input-area {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: 18px 0;
+  }
+
+  .letter-box {
+    width: 36px;
+    height: 42px;
+    background: #111;
+    border: 2px solid #555;
+    border-radius: 6px;
+    font-size: 24px;
+    text-align: center;
+    color: #fff;
+  }
+
+  .letter-box.correct {
+    border-color: #00ff99;
+    background: #033;
+  }
+
+  button {
+    margin: 5px;
+    padding: 10px 18px;
+    font-size: 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+  }
+
+  .speak-btn { background: #ff8c00; color: #fff; }
+  .check-btn { background: #3399ff; color: #fff; }
+  .next-btn { background: #28a745; color: #fff; }
+  .clear-btn { background: #6c757d; color: #fff; }
+  button:hover { opacity: 0.85; }
+
+  .stats {
+    background: #000;
+    border: 2px solid #fff;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 0 12px rgba(255,255,255,0.1);
+    font-size: 16px;
+    text-align: left;
+    margin-top: 15px;
+  }
+
+  .progress-container {
+    background: #111;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 18px;
+    margin-top: 6px;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: #00ff99;
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  /* 右側區 */
+  .right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 500px;
+  }
+
+  .box {
+    background: #000;
+    border: 2px solid #fff;
+    border-radius: 12px;
+    padding: 15px 20px;
+    box-shadow: 0 0 15px rgba(255,255,255,0.1);
+  }
+
+  h3 { margin-top: 0; color: #fff; }
+
+  ul { padding-left: 20px; max-height: 150px; overflow-y: auto; }
+  ul::-webkit-scrollbar { width: 8px; }
+  ul::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+
+  select {
+    width: 160px;
+    height: 160px;
+    background: #000;
+    color: #fff;
+    border: 1px solid #fff;
+    border-radius: 6px;
+    padding: 4px;
+  }
+
+  .library-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .move-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .reset-btn {
+    margin-top: 10px;
+    background-color: #dc3545;
+    color: #fff;
+    font-weight: bold;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .history-reset-btn {
+    margin-top: 8px;
+    background-color: #6c757d;
+    color: #fff;
+    font-weight: bold;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 左側拼字卡 + 統計 -->
+  <div>
+    <div class="card">
+      <div class="meaning" id="meaning">請按「下一題」開始</div>
+      <div class="input-area" id="inputArea"></div>
+      <div>
+        <button class="speak-btn" onclick="speakWord()">發音</button>
+        <button class="check-btn" onclick="checkAnswer()">檢查拼字</button>
+        <button class="clear-btn" onclick="clearInputs()">清空</button>
+        <button class="next-btn" onclick="nextWord()">下一題</button>
+      </div>
+      <p id="resultMsg" style="margin-top:15px; font-size:18px; color:#ffd700;"></p>
+    </div>
+
+    <div class="stats">
+      <p>總練習單字數：<span id="stat-practiced">0</span></p>
+      <p>答對次數：<span id="stat-correct">0</span></p>
+      <p>答錯次數：<span id="stat-wrong">0</span></p>
+      <p>正確率：<span id="stat-accuracy">0</span>%</p>
+      <div class="progress-container"><div class="progress-bar" id="progress-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- 右側：歷史紀錄 + 題庫管理 -->
+  <div class="right">
+    <div class="box">
+      <h3>歷史紀錄</h3>
+      <ul id="historyList"></ul>
+      <button class="history-reset-btn" onclick="resetHistory()">清空歷史紀錄</button>
+    </div>
+
+    <div class="box">
+      <h3>題庫管理</h3>
+      <div class="library-container">
+        <select id="mainLibrary" size="8" multiple></select>
+        <div class="move-btns">
+          <button onclick="moveToDeleted()">➡️</button>
+          <button onclick="moveToLibrary()">⬅️</button>
+        </div>
+        <select id="deletedLibrary" size="8" multiple></select>
+      </div>
+      <button class="reset-btn" onclick="resetLibrary()">重置題庫</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const fullWords = [
+  {en: "able", zh: "能夠…的"},
+  {en: "about", zh: "關於"},
+  {en: "above", zh: "在…上方"},
+  {en: "abroad", zh: "在國外"},
+  {en: "across", zh: "在…對面"},
+  {en: "actress", zh: "女演員"},
+  {en: "afraid", zh: "害怕的"},
+  {en: "agree", zh: "同意"},
+  {en: "ahead", zh: "在前方"},
+  {en: "almost", zh: "幾乎"},
+  {en: "along", zh: "沿著"},
+  {en: "already", zh: "已經"},
+  {en: "always", zh: "總是"},
+  {en: "another", zh: "另一個"},
+  {en: "anyone", zh: "任何人"},
+  {en: "anything", zh: "任何事物"},
+  {en: "apartment", zh: "公寓"},
+  {en: "appear", zh: "出現"},
+  {en: "around", zh: "在…四周"},
+  {en: "arrive", zh: "到達"},
+  {en: "aunt", zh: "伯(叔)母"},
+  {en: "autumn", zh: "秋天"},
+  {en: "badminton", zh: "羽毛球"},
+  {en: "bake", zh: "烘烤"},
+  {en: "bakery", zh: "麵包店"},
+  {en: "balcony", zh: "陽台"},
+  {en: "band", zh: "樂團"},
+  {en: "barbecue", zh: "烤肉"},
+  {en: "bath", zh: "洗澡"},
+  {en: "bean", zh: "豆"},
+  {en: "beautiful", zh: "美麗的"},
+  {en: "because", zh: "因為"},
+  {en: "become", zh: "變成"},
+  {en: "bedroom", zh: "臥室"},
+  {en: "before", zh: "在…之前"},
+  {en: "begin", zh: "開始"},
+  {en: "behind", zh: "在…後面"},
+  {en: "believe", zh: "相信"},
+  {en: "belong", zh: "屬於"},
+  {en: "below", zh: "在…下方"},
+  {en: "belt", zh: "皮帶"},
+  {en: "bench", zh: "長椅"},
+  {en: "beside", zh: "在…旁邊"},
+  {en: "between", zh: "在…之間"},
+  {en: "bike", zh: "腳踏車"},
+  {en: "bite", zh: "咬"},
+  {en: "blanket", zh: "毯子"},
+  {en: "blind", zh: "瞎的"},
+  {en: "block", zh: "街區"},
+  {en: "blow", zh: "吹"},
+  {en: "boil", zh: "煮沸"},
+  {en: "bookstore", zh: "書店"},
+  {en: "bored", zh: "感到厭煩的"},
+  {en: "boring", zh: "無聊的"},
+  {en: "born", zh: "出生"},
+  {en: "borrow", zh: "借入"},
+  {en: "both", zh: "兩者都"},
+  {en: "bottle", zh: "瓶子"},
+  {en: "bottom", zh: "底部"},
+  {en: "bow", zh: "敬禮"},
+  {en: "bowl", zh: "碗"},
+  {en: "bread", zh: "麵包"},
+  {en: "break", zh: "打破"},
+  {en: "bridge", zh: "橋"},
+  {en: "bright", zh: "明亮的"},
+  {en: "bring", zh: "帶來"},
+  {en: "brown", zh: "褐色(的)"},
+  {en: "brush", zh: "刷"},
+  {en: "build", zh: "建造"},
+  {en: "bun", zh: "小圓麵包"},
+  {en: "burn", zh: "燃燒"},
+  {en: "business", zh: "生意"},
+  {en: "businessman", zh: "商人"},
+  {en: "busy", zh: "忙碌的"},
+  {en: "butter", zh: "奶油"},
+  {en: "butterfly", zh: "蝴蝶"},
+  {en: "cage", zh: "籠子"},
+  {en: "candle", zh: "蠟燭"},
+  {en: "care", zh: "關心"},
+  {en: "careful", zh: "仔細的"},
+  {en: "carry", zh: "攜帶"},
+  {en: "case", zh: "情形"},
+  {en: "castle", zh: "城堡"},
+  {en: "catch", zh: "趕上"},
+  {en: "celebrate", zh: "慶祝"},
+  {en: "cell phone", zh: "手機"},
+  {en: "cent", zh: "(一)分錢"},
+  {en: "center", zh: "中心"},
+  {en: "centimeter", zh: "公分"},
+  {en: "chalk", zh: "粉筆"},
+  {en: "chance", zh: "機會"},
+  {en: "change", zh: "零錢"},
+  {en: "cheap", zh: "便宜的"},
+  {en: "cheat", zh: "欺騙"},
+  {en: "check", zh: "檢查"},
+  {en: "cheer", zh: "歡呼"},
+  {en: "cheese", zh: "乳酪"},
+  {en: "chess", zh: "西洋棋"},
+  {en: "child", zh: "小孩"},
+  {en: "chocolate", zh: "巧克力"},
+  {en: "choose", zh: "選擇"},
+  {en: "chopsticks", zh: "筷子"},
+  {en: "church", zh: "教堂"},
+  {en: "clap", zh: "拍手"},
+  {en: "clear", zh: "清楚的"},
+  {en: "clerk", zh: "店員"},
+  {en: "climb", zh: "爬"},
+  {en: "close", zh: "關上"},
+  {en: "clothes", zh: "衣服"},
+  {en: "cloudy", zh: "多雲的"},
+  {en: "club", zh: "社團"},
+  {en: "coat", zh: "大衣"},
+  {en: "collect", zh: "收集"},
+  {en: "comb", zh: "梳子"},
+  {en: "comfortable", zh: "舒適的"},
+  {en: "comic", zh: "連環畫的"},
+  {en: "common", zh: "共同的"},
+  {en: "convenient", zh: "方便的"},
+  {en: "corner", zh: "角落"},
+  {en: "correct", zh: "正確的"},
+  {en: "cost", zh: "價值"},
+  {en: "couch", zh: "沙發"},
+  {en: "count", zh: "數"},
+  {en: "country", zh: "鄉村"},
+  {en: "course", zh: "課程"},
+  {en: "cousin", zh: "(表)兄弟姊妹"},
+  {en: "cover", zh: "覆蓋"},
+  {en: "crazy", zh: "瘋狂的"},
+  {en: "cross", zh: "越過"},
+  {en: "dangerous", zh: "危險的"},
+  {en: "dark", zh: "黑暗的"},
+  {en: "date", zh: "日期"},
+  {en: "daughter", zh: "女兒"},
+  {en: "dead", zh: "死的"},
+  {en: "decide", zh: "決定"},
+  {en: "delicious", zh: "美味的"},
+  {en: "dentist", zh: "牙醫"},
+  {en: "department store", zh: "百貨公司"},
+  {en: "dictionary", zh: "字典"},
+  {en: "die", zh: "死亡"},
+  {en: "different", zh: "不同的"},
+  {en: "difficult", zh: "困難的"},
+  {en: "dig", zh: "挖掘"},
+  {en: "dining room", zh: "飯廳"},
+  {en: "dirty", zh: "骯髒的"},
+  {en: "dish", zh: "盤子"},
+  {en: "dodge ball", zh: "躲避球"},
+  {en: "doll", zh: "洋娃娃"},
+  {en: "dollar", zh: "元"},
+  {en: "dot", zh: "點"},
+  {en: "dozen", zh: "一打"},
+  {en: "dragon", zh: "龍"},
+  {en: "draw", zh: "畫"},
+  {en: "drawer", zh: "抽屜"},
+  {en: "dress", zh: "洋裝"},
+  {en: "driver", zh: "駕駛者"},
+  {en: "drop", zh: "掉落"},
+  {en: "drum", zh: "鼓"},
+  {en: "dry", zh: "乾的"},
+  {en: "dumpling", zh: "湯圓"},
+  {en: "during", zh: "在…期間"},
+  {en: "earth", zh: "地球"},
+  {en: "east", zh: "東方"},
+  {en: "either", zh: "也不"},
+  {en: "elementary school", zh: "小學"},
+  {en: "else", zh: "其他的"},
+  {en: "e-mail", zh: "電子郵件"},
+  {en: "engineer", zh: "工程師"},
+  {en: "enjoy", zh: "喜愛"},
+  {en: "enough", zh: "足夠的"},
+  {en: "enter", zh: "進入"},
+  {en: "envelope", zh: "信封"},
+  {en: "eraser", zh: "橡皮擦"},
+  {en: "even", zh: "甚至"},
+  {en: "evening", zh: "傍晚"},
+  {en: "ever", zh: "曾經"},
+  {en: "example", zh: "例子"},
+  {en: "excellent", zh: "極好的"},
+  {en: "except", zh: "除了…之外"},
+  {en: "excited", zh: "感興奮的"},
+  {en: "exciting", zh: "令人興奮的"},
+  {en: "excuse", zh: "原諒"},
+  {en: "exercise", zh: "運動"},
+  {en: "expensive", zh: "昂貴的"},
+  {en: "experience", zh: "經驗"},
+  {en: "fact", zh: "事實"},
+  {en: "factory", zh: "工廠"},
+  {en: "fail", zh: "失敗"},
+  {en: "fall", zh: "秋天"},
+  {en: "famous", zh: "有名的"},
+  {en: "favorite", zh: "最喜愛的"},
+  {en: "February", zh: "二月"},
+  {en: "feed", zh: "餵"},
+  {en: "festival", zh: "節慶"},
+  {en: "fever", zh: "發燒"},
+  {en: "fight", zh: "打架"},
+  {en: "fill", zh: "裝滿"},
+  {en: "finally", zh: "最後"},
+  {en: "finish", zh: "完成"},
+  {en: "fix", zh: "修理"},
+  {en: "floor", zh: "地板"},
+  {en: "flute", zh: "笛"},
+  {en: "follow", zh: "遵循"},
+  {en: "foreign", zh: "外國的"},
+  {en: "foreigner", zh: "外國人"},
+  {en: "forget", zh: "忘記"},
+  {en: "fork", zh: "叉子"},
+  {en: "forty", zh: "四十"},
+  {en: "fourth", zh: "第四"},
+  {en: "French fries", zh: "薯條"},
+  {en: "fresh", zh: "新鮮的"},
+  {en: "friendly", zh: "友善的"},
+  {en: "frisbee", zh: "飛盤"},
+  {en: "frog", zh: "蛙"},
+  {en: "front", zh: "前面"},
+  {en: "fruit", zh: "水果"},
+  {en: "fry", zh: "油炸"},
+  {en: "full", zh: "滿的"},
+  {en: "funny", zh: "好笑的"},
+  {en: "future", zh: "未來"},
+  {en: "garbage", zh: "垃圾"},
+  {en: "gas", zh: "瓦斯"},
+  {en: "gate", zh: "大門"},
+  {en: "giant", zh: "巨大的/巨人"},
+  {en: "glad", zh: "高興的"},
+  {en: "glass", zh: "玻璃杯"},
+  {en: "glasses", zh: "眼鏡"},
+  {en: "glove", zh: "手套"},
+  {en: "goat", zh: "山羊"},
+  {en: "goose", zh: "鵝"},
+  {en: "grade", zh: "成績"},
+  {en: "gram", zh: "公克"},
+  {en: "grass", zh: "草"},
+  {en: "gray", zh: "灰色的"},
+  {en: "ground", zh: "地面"},
+  {en: "group", zh: "團體"},
+  {en: "grow", zh: "種植"},
+  {en: "guava", zh: "番石榴"},
+  {en: "guess", zh: "猜想"},
+  {en: "guitar", zh: "吉他"},
+  {en: "gym", zh: "體育館"},
+  {en: "habit", zh: "習慣"},
+  {en: "half", zh: "一半"},
+  {en: "hamburger", zh: "漢堡"},
+  {en: "handsome", zh: "英俊的"},
+  {en: "hang", zh: "懸掛"},
+  {en: "happen", zh: "發生"},
+  {en: "hard", zh: "困難的"},
+  {en: "hard-working", zh: "努力工作的"},
+  {en: "headache", zh: "頭痛"},
+  {en: "health", zh: "健康"},
+  {en: "healthy", zh: "健康的"},
+  {en: "heat", zh: "熱"},
+  {en: "heavy", zh: "重的"},
+  {en: "helpful", zh: "有幫助的"},
+  {en: "hide", zh: "隱藏"},
+  {en: "hike", zh: "徒步旅行"},
+  {en: "hill", zh: "小山"},
+  {en: "history", zh: "歷史"},
+  {en: "hit", zh: "打擊"},
+  {en: "hobby", zh: "嗜好"},
+  {en: "hold", zh: "拿著"},
+  {en: "holiday", zh: "假日"},
+  {en: "homework", zh: "家庭作業"},
+  {en: "honest", zh: "誠實的"},
+  {en: "hotel", zh: "旅社"},
+  {en: "hour", zh: "小時"},
+  {en: "housewife", zh: "家庭主婦"},
+  {en: "however", zh: "然而"},
+  {en: "hunt", zh: "打獵"},
+  {en: "hurry", zh: "趕忙"},
+  {en: "hurt", zh: "受傷"},
+  {en: "husband", zh: "丈夫"},
+  {en: "important", zh: "重要的"},
+  {en: "insect", zh: "昆蟲"},
+  {en: "inside", zh: "在...內部"},
+  {en: "interesting", zh: "有趣的"},
+  {en: "interview", zh: "訪問"},
+  {en: "Internet", zh: "網路"},
+  {en: "invite", zh: "邀請"},
+  {en: "island", zh: "島嶼"},
+  {en: "jacket", zh: "夾克"},
+  {en: "jeans", zh: "牛仔褲"},
+  {en: "join", zh: "加入"},
+  {en: "junior high school", zh: "國中"},
+  {en: "kangaroo", zh: "袋鼠"},
+  {en: "kind", zh: "種類"},
+  {en: "knock", zh: "敲"},
+  {en: "know", zh: "知道"},
+  {en: "knowledge", zh: "知識"},
+  {en: "koala", zh: "無尾熊"},
+  {en: "lake", zh: "湖"},
+  {en: "lamp", zh: "燈"},
+  {en: "land", zh: "土地"},
+  {en: "language", zh: "語言"},
+  {en: "lantern", zh: "燈籠"},
+  {en: "large", zh: "大的"},
+  {en: "last", zh: "最後的"},
+  {en: "later", zh: "較晚"},
+  {en: "lawyer", zh: "律師"},
+  {en: "lazy", zh: "懶惰的"},
+  {en: "lead", zh: "引導"},
+  {en: "leader", zh: "領導者"},
+  {en: "learn", zh: "學習"},
+  {en: "least", zh: "最少"},
+  {en: "leave", zh: "離開"},
+  {en: "lemon", zh: "檸檬"},
+  {en: "lend", zh: "借出"},
+  {en: "less", zh: "較少的"},
+  {en: "lesson", zh: "課"},
+  {en: "letter", zh: "信"},
+  {en: "lettuce", zh: "萵苣"},
+  {en: "lid", zh: "蓋子"},
+  {en: "lie", zh: "說謊"},
+  {en: "light", zh: "燈"},
+  {en: "line", zh: "隊伍"},
+  {en: "list", zh: "表"},
+  {en: "lonely", zh: "寂寞的"},
+  {en: "lose", zh: "遺失"},
+  {en: "loud", zh: "大聲的"},
+  {en: "lucky", zh: "幸運的"},
+  {en: "machine", zh: "機器"},
+  {en: "mad", zh: "瘋狂的"},
+  {en: "mark", zh: "做記號"},
+  {en: "marker", zh: "簽字筆"},
+  {en: "married", zh: "已婚的"},
+  {en: "mask", zh: "面具"},
+  {en: "mat", zh: "墊子"},
+  {en: "matter", zh: "事情"},
+  {en: "meal", zh: "一餐"},
+  {en: "mean", zh: "意指"},
+  {en: "meat", zh: "肉"},
+  {en: "medicine", zh: "藥"},
+  {en: "medium", zh: "中號"},
+  {en: "meet", zh: "遇見"},
+  {en: "meeting", zh: "會議"},
+  {en: "menu", zh: "菜單"},
+  {en: "mile", zh: "哩"},
+  {en: "million", zh: "百萬"},
+  {en: "mind", zh: "介意"},
+  {en: "minute", zh: "分鐘"},
+  {en: "mistake", zh: "錯誤"},
+  {en: "modern", zh: "現代化的"},
+  {en: "moment", zh: "片刻"},
+  {en: "mop", zh: "拖地"},
+  {en: "more", zh: "更多的"},
+  {en: "mountain", zh: "山"},
+  {en: "move", zh: "移動"},
+  {en: "Ms.", zh: "女士"},
+  {en: "mud", zh: "泥"},
+  {en: "museum", zh: "博物館"},
+  {en: "nail", zh: "釘子"},
+  {en: "national", zh: "國家的"},
+  {en: "neck", zh: "脖子"},
+  {en: "neighbor", zh: "鄰居"},
+  {en: "news", zh: "消息"},
+  {en: "ninth", zh: "第九"},
+  {en: "nod", zh: "點頭"},
+  {en: "noise", zh: "噪音"},
+  {en: "noodle", zh: "麵條"},
+  {en: "north", zh: "北方"},
+  {en: "notebook", zh: "筆記本"},
+  {en: "notice", zh: "注意到"},
+  {en: "office", zh: "辦公室"},
+  {en: "officer", zh: "警官"},
+  {en: "often", zh: "時常"},
+  {en: "order", zh: "點餐"},
+  {en: "other", zh: "其他的"},
+  {en: "outside", zh: "在...外面"},
+  {en: "own", zh: "自己的"},
+  {en: "pack", zh: "包"},
+  {en: "package", zh: "包裹"},
+  {en: "paint", zh: "繪畫"},
+  {en: "pair", zh: "一雙"},
+  {en: "pants", zh: "長褲"},
+  {en: "papaya", zh: "木瓜"},
+  {en: "parent", zh: "父(母)親"},
+  {en: "part", zh: "部分"},
+  {en: "past", zh: "經過"},
+  {en: "paste", zh: "黏貼"},
+  {en: "pear", zh: "梨子"},
+  {en: "people", zh: "人們"},
+  {en: "perhaps", zh: "或許"},
+  {en: "person", zh: "人"},
+  {en: "piano", zh: "鋼琴"},
+  {en: "piece", zh: "片"},
+  {en: "pin", zh: "大頭針"},
+  {en: "pipe", zh: "管"},
+  {en: "place", zh: "地方"},
+  {en: "planet", zh: "行星"},
+  {en: "plant", zh: "植物"},
+  {en: "playground", zh: "操場"},
+  {en: "pleasure", zh: "樂事"},
+  {en: "polite", zh: "有禮貌的"},
+  {en: "pond", zh: "池塘"},
+  {en: "pool", zh: "游泳池"},
+  {en: "poor", zh: "貧困的"},
+  {en: "popcorn", zh: "爆米花"},
+  {en: "popular", zh: "受歡迎的"},
+  {en: "pork", zh: "豬肉"},
+  {en: "possible", zh: "可能的"},
+  {en: "post office", zh: "郵局"},
+  {en: "postcard", zh: "明信片"},
+  {en: "pot", zh: "罐"},
+  {en: "pound", zh: "磅"},
+  {en: "practice", zh: "練習"},
+  {en: "pray", zh: "祈禱"},
+  {en: "prepare", zh: "準備"},
+  {en: "present", zh: "禮物"},
+  {en: "pretty", zh: "漂亮的"},
+  {en: "price", zh: "價格"},
+  {en: "princess", zh: "公主"},
+  {en: "prize", zh: "獎"},
+  {en: "problem", zh: "問題"},
+  {en: "program", zh: "節目"},
+  {en: "proud", zh: "驕傲的"},
+  {en: "public", zh: "公立的"},
+  {en: "purple", zh: "紫色的"},
+  {en: "quarter", zh: "一刻鐘"},
+  {en: "queen", zh: "皇后"},
+  {en: "quick", zh: "迅速的"},
+  {en: "quiet", zh: "安靜的"},
+  {en: "quite", zh: "相當"},
+  {en: "quiz", zh: "小考"},
+  {en: "railroad", zh: "鐵路"},
+  {en: "raise", zh: "舉起"},
+  {en: "refrigerator", zh: "冰箱"},
+  {en: "remember", zh: "記得"},
+  {en: "repeat", zh: "重複"},
+  {en: "reporter", zh: "記者"},
+  {en: "restaurant", zh: "餐館"},
+  {en: "river", zh: "河"},
+  {en: "road", zh: "道路"},
+  {en: "robot", zh: "機器人"},
+  {en: "rock", zh: "岩石"},
+  {en: "roll", zh: "滾"},
+  {en: "roller-skate", zh: "溜冰"},
+  {en: "rope", zh: "繩子"},
+  {en: "round", zh: "圓形的"},
+  {en: "row", zh: "划(船)"},
+  {en: "rule", zh: "規則"},
+  {en: "sail", zh: "航行"},
+  {en: "salad", zh: "沙拉"},
+  {en: "sale", zh: "出售"},
+  {en: "salesman", zh: "推銷員"},
+  {en: "salt", zh: "鹽"},
+  {en: "sandwich", zh: "三明治"},
+  {en: "sacred", zh: "神聖的"},
+  {en: "save", zh: "節省"},
+  {en: "scooter", zh: "速克達機車"},
+  {en: "screen", zh: "螢幕"},
+  {en: "season", zh: "季節"},
+  {en: "second", zh: "第二"},
+  {en: "secretary", zh: "秘書"},
+  {en: "seed", zh: "種子"},
+  {en: "seesaw", zh: "蹺蹺板"},
+  {en: "seldom", zh: "很少"},
+  {en: "senior high school", zh: "高中"},
+  {en: "sentence", zh: "句子"},
+  {en: "serious", zh: "嚴重的"},
+  {en: "set", zh: "(電視)機"},
+  {en: "several", zh: "幾個的"},
+  {en: "shake", zh: "搖動"},
+  {en: "shape", zh: "形狀"},
+  {en: "shirt", zh: "襯衫"},
+  {en: "shopkeeper", zh: "店主"},
+  {en: "shorts", zh: "短褲"},
+  {en: "should", zh: "應該"},
+  {en: "shoulder", zh: "肩膀"},
+  {en: "shout", zh: "喊叫"},
+  {en: "side", zh: "旁邊"},
+  {en: "sidewalk", zh: "人行道"},
+  {en: "sight", zh: "視力"},
+  {en: "sign", zh: "標誌"},
+  {en: "simple", zh: "簡單的"},
+  {en: "since", zh: "自從"},
+  {en: "sister", zh: "姊妹"},
+  {en: "skate", zh: "溜冰"},
+  {en: "skirt", zh: "裙子"},
+  {en: "slide", zh: "溜滑梯"},
+  {en: "slim", zh: "苗條的"},
+  {en: "smell", zh: "聞起來"},
+  {en: "smile", zh: "微笑"},
+  {en: "smoke", zh: "煙"},
+  {en: "snack", zh: "點心"},
+  {en: "snake", zh: "蛇"},
+  {en: "soldier", zh: "軍人"},
+  {en: "soon", zh: "不久"},
+  {en: "sore", zh: "疼痛的"},
+  {en: "sound", zh: "聽起來"},
+  {en: "soup", zh: "湯"},
+  {en: "south", zh: "南方"},
+  {en: "space", zh: "空間"},
+  {en: "spaghetti", zh: "義大利麵"},
+  {en: "special", zh: "特別的"},
+  {en: "spell", zh: "拼字"},
+  {en: "spend", zh: "花費"},
+  {en: "spider", zh: "蜘蛛"},
+  {en: "square", zh: "正方形的"},
+  {en: "stairs", zh: "樓梯"},
+  {en: "stamp", zh: "郵票"},
+  {en: "station", zh: "車站"},
+  {en: "steak", zh: "牛排"},
+  {en: "still", zh: "仍然"},
+  {en: "stomach", zh: "胃"},
+  {en: "straight", zh: "直的"},
+  {en: "strange", zh: "奇怪的"},
+  {en: "stranger", zh: "陌生人"},
+  {en: "strawberry", zh: "草莓"},
+  {en: "stupid", zh: "笨的"},
+  {en: "subject", zh: "科目"},
+  {en: "successful", zh: "成功的"},
+  {en: "sugar", zh: "糖"},
+  {en: "surf", zh: "衝浪"},
+  {en: "surprise", zh: "使驚訝"},
+  {en: "surprised", zh: "感驚訝的"},
+  {en: "sweater", zh: "毛衣"},
+  {en: "swing", zh: "鞦韆"},
+  {en: "taste", zh: "品嚐"},
+  {en: "teenager", zh: "青少年"},
+  {en: "temple", zh: "寺廟"},
+  {en: "tennis", zh: "網球"},
+  {en: "terrible", zh: "可怕的"},
+  {en: "theater", zh: "戲院"},
+  {en: "thick", zh: "厚的"},
+  {en: "thirsty", zh: "口渴的"},
+  {en: "thirty", zh: "三十"},
+  {en: "throat", zh: "喉嚨"},
+  {en: "throw", zh: "丟"},
+  {en: "those", zh: "那些"},
+  {en: "though", zh: "雖然"},
+  {en: "thousand", zh: "千"},
+  {en: "ticket", zh: "票"},
+  {en: "tidy", zh: "整潔的"},
+  {en: "tie", zh: "領帶"},
+  {en: "tired", zh: "疲倦的"},
+  {en: "toast", zh: "土司"},
+  {en: "toe", zh: "腳趾"},
+  {en: "together", zh: "一起"},
+  {en: "tomato", zh: "番茄"},
+  {en: "tonight", zh: "今晚"},
+  {en: "total", zh: "總計"},
+  {en: "touch", zh: "碰觸"},
+  {en: "towel", zh: "毛巾"},
+  {en: "town", zh: "城鎮"},
+  {en: "traffic", zh: "交通"},
+  {en: "trash", zh: "垃圾"},
+  {en: "treat", zh: "請客"},
+  {en: "trick", zh: "惡作劇"},
+  {en: "trip", zh: "旅行"},
+  {en: "trouble", zh: "麻煩"},
+  {en: "truck", zh: "卡車"},
+  {en: "tub", zh: "浴缸"},
+  {en: "turn", zh: "轉動"},
+  {en: "twice", zh: "兩次"},
+  {en: "type", zh: "打字"},
+  {en: "typhoon", zh: "颱風"},
+  {en: "umbrella", zh: "雨傘"},
+  {en: "uncle", zh: "伯(叔)"},
+  {en: "understand", zh: "了解"},
+  {en: "uniform", zh: "制服"},
+  {en: "until", zh: "直到"},
+  {en: "useful", zh: "有用的"},
+  {en: "usually", zh: "通常"},
+  {en: "vacation", zh: "假期"},
+  {en: "vegetable", zh: "蔬菜"},
+  {en: "vest", zh: "背心"},
+  {en: "video", zh: "影像的"},
+  {en: "violin", zh: "小提琴"},
+  {en: "visit", zh: "參觀"},
+  {en: "voice", zh: "聲音"},
+  {en: "waiter", zh: "男服務生"},
+  {en: "waitress", zh: "女服務生"},
+  {en: "wallet", zh: "皮夾"},
+  {en: "warm", zh: "溫暖的"},
+  {en: "watermelon", zh: "西瓜"},
+  {en: "wave", zh: "波浪"},
+  {en: "weak", zh: "弱的"},
+  {en: "weather", zh: "天氣"},
+  {en: "Wednesday", zh: "星期三"},
+  {en: "weekend", zh: "週末"},
+  {en: "welcome", zh: "受歡迎的"},
+  {en: "west", zh: "西方"},
+  {en: "whale", zh: "鯨魚"},
+  {en: "whether", zh: "是否"},
+  {en: "which", zh: "哪一個"},
+  {en: "white", zh: "白色(的)"},
+  {en: "whose", zh: "誰的"},
+  {en: "wife", zh: "妻子"},
+  {en: "wind", zh: "風"},
+  {en: "windy", zh: "多風的"},
+  {en: "wise", zh: "明智的"},
+  {en: "without", zh: "沒有"},
+  {en: "wonderful", zh: "極好的"},
+  {en: "workbook", zh: "作業本"},
+  {en: "worker", zh: "工人"},
+  {en: "worry", zh: "擔心"},
+  {en: "wrong", zh: "錯誤的"},
+  {en: "yard", zh: "庭院"},
+  {en: "yellow", zh: "黃色(的)"}
+];
+
+let activeLibrary = JSON.parse(localStorage.getItem("activeLibrary")) || [...fullWords];
+let deletedLibrary = JSON.parse(localStorage.getItem("deletedLibrary")) || [];
+let currentWord = {};
+let total = 0, correct = 0, wrong = 0;
+let history = JSON.parse(localStorage.getItem("spellHistory")) || [];
+
+function saveAll() {
+  localStorage.setItem("activeLibrary", JSON.stringify(activeLibrary));
+  localStorage.setItem("deletedLibrary", JSON.stringify(deletedLibrary));
+  localStorage.setItem("spellHistory", JSON.stringify(history));
+}
+
+function updateLibraryDisplay() {
+  const main = document.getElementById("mainLibrary");
+  const del = document.getElementById("deletedLibrary");
+  main.innerHTML = del.innerHTML = "";
+  activeLibrary.forEach((w, i) => {
+    const o = document.createElement("option");
+    o.value = i; o.textContent = `${w.en} - ${w.zh}`; main.appendChild(o);
+  });
+  deletedLibrary.forEach((w, i) => {
+    const o = document.createElement("option");
+    o.value = i; o.textContent = `${w.en} - ${w.zh}`; del.appendChild(o);
+  });
+}
+
+function getRandomWord() {
+  if (activeLibrary.length === 0) { alert("題庫為空！"); return null; }
+  return activeLibrary[Math.floor(Math.random() * activeLibrary.length)];
+}
+
+function nextWord() {
+  currentWord = getRandomWord();
+  if (!currentWord) return;
+  document.getElementById("meaning").textContent = currentWord.zh;
+  document.getElementById("resultMsg").textContent = "";
+  renderInputBoxes(currentWord.en);
+}
+
+function renderInputBoxes(word) {
+  const area = document.getElementById("inputArea");
+  area.innerHTML = "";
+  for (let i = 0; i < word.length; i++) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.maxLength = 1;
+    input.className = "letter-box";
+    input.dataset.index = i;
+
+    input.addEventListener("input", e => {
+      e.target.value = e.target.value.toLowerCase();
+      const next = e.target.nextElementSibling;
+      if (next && e.target.value) next.focus();
+    });
+
+    input.addEventListener("keydown", e => {
+      if (e.key === "Backspace" && !e.target.value) {
+        const prev = e.target.previousElementSibling;
+        if (prev) prev.focus();
+      }
+      if (e.key === "Enter") checkAnswer();
+    });
+
+    area.appendChild(input);
+  }
+  area.querySelector("input").focus();
+}
+
+function clearInputs() {
+  document.querySelectorAll(".letter-box").forEach(i => i.value = "");
+  const first = document.querySelector(".letter-box");
+  if (first) first.focus();
+  document.getElementById("resultMsg").textContent = "";
+}
+
+function speakWord() {
+  if (!currentWord.en) return;
+  const msg = new SpeechSynthesisUtterance(currentWord.en);
+  msg.lang = "en-US";
+  speechSynthesis.speak(msg);
+}
+
+function checkAnswer() {
+  const inputs = document.querySelectorAll(".letter-box");
+  const answer = Array.from(inputs).map(i => i.value.toLowerCase()).join("");
+  const correctWord = currentWord.en.toLowerCase();
+  total++;
+
+  if (answer === correctWord) {
+    correct++;
+    document.getElementById("resultMsg").textContent = "✅ 正確！";
+    inputs.forEach(i => i.classList.add("correct"));
+    history.push({ zh: currentWord.zh, en: currentWord.en, ok: true });
+    saveAll();
+    updateHistory();
+    updateStats();
+    setTimeout(() => nextWord(), 700); // ✅ 正確自動換題（延遲0.7秒）
+  } else {
+    wrong++;
+    document.getElementById("resultMsg").textContent = `❌ 錯誤，正確是：${currentWord.en}`;
+    history.push({ zh: currentWord.zh, en: currentWord.en, ok: false });
+    saveAll();
+    updateHistory();
+    updateStats();
+  }
+}
+
+function updateStats() {
+  const acc = total ? Math.round((correct / total) * 100) : 0;
+  document.getElementById("stat-practiced").textContent = total;
+  document.getElementById("stat-correct").textContent = correct;
+  document.getElementById("stat-wrong").textContent = wrong;
+  document.getElementById("stat-accuracy").textContent = acc;
+  document.getElementById("progress-bar").style.width = acc + "%";
+}
+
+function updateHistory() {
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+  history.slice(-50).reverse().forEach(h => {
+    const li = document.createElement("li");
+    li.textContent = `${h.zh} — ${h.en}`;
+    li.style.color = h.ok ? "#00ff99" : "#ff6666";
+    list.appendChild(li);
+  });
+}
+
+function resetHistory() {
+  if (confirm("確定要清空歷史紀錄嗎？")) {
+    history = [];
+    saveAll();
+    updateHistory();
+  }
+}
+
+function moveToDeleted() {
+  const select = document.getElementById("mainLibrary");
+  const sel = Array.from(select.selectedOptions).map(o => parseInt(o.value));
+  sel.sort((a,b)=>b-a).forEach(i => deletedLibrary.push(activeLibrary.splice(i,1)[0]));
+  updateLibraryDisplay(); saveAll();
+}
+
+function moveToLibrary() {
+  const select = document.getElementById("deletedLibrary");
+  const sel = Array.from(select.selectedOptions).map(o => parseInt(o.value));
+  sel.sort((a,b)=>b-a).forEach(i => activeLibrary.push(deletedLibrary.splice(i,1)[0]));
+  updateLibraryDisplay(); saveAll();
+}
+
+function resetLibrary() {
+  if (confirm("確定要重置題庫嗎？")) {
+    activeLibrary = [...fullWords];
+    deletedLibrary = [];
+    saveAll();
+    updateLibraryDisplay();
+  }
+}
+
+updateLibraryDisplay();
+updateHistory();
+nextWord();
+</script>
+</body>
+</html>
