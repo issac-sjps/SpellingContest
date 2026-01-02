@@ -2,15 +2,17 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>600單字練習-拼字輸入練習系統</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>600單字練習-拼字輸入練習系統 (RWD版)</title>
 <style>
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
     background: #000;
     color: #fff;
     margin: 0;
-    padding: 25px;
+    padding: 20px;
+    /* 防止手機雙擊縮放 */
+    touch-action: manipulation;
   }
 
   .container {
@@ -18,9 +20,16 @@
     justify-content: center;
     align-items: flex-start;
     gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
   }
 
   /* 左側拼字卡 */
+  .left-panel {
+    width: 100%;
+    max-width: 850px;
+  }
+
   .card {
     background: #000;
     border: 2px solid #fff;
@@ -28,54 +37,83 @@
     padding: 25px;
     box-shadow: 0 0 20px rgba(255,255,255,0.1);
     text-align: center;
-    width: 850px;
+    width: 100%;
+    box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
   }
 
   .meaning {
     font-size: 28px;
     color: #a2d2ff;
     margin-bottom: 20px;
+    font-weight: bold;
+    min-height: 1.2em;
   }
 
   .input-area {
     display: flex;
     justify-content: center;
     gap: 6px;
-    margin: 18px 0;
+    margin: 20px 0;
+    flex-wrap: wrap; /* 關鍵：手機上單字太長可以換行 */
   }
 
   .letter-box {
-    width: 36px;
-    height: 42px;
+    width: 40px;
+    height: 46px;
     background: #111;
     border: 2px solid #555;
     border-radius: 6px;
     font-size: 24px;
     text-align: center;
     color: #fff;
+    caret-color: #00ff99; /* 游標顏色 */
+  }
+
+  /* 手機版縮小一點輸入框 */
+  @media (max-width: 600px) {
+    .letter-box {
+      width: 32px;
+      height: 40px;
+      font-size: 20px;
+      margin-bottom: 5px; /* 換行時增加間距 */
+    }
+    .meaning {
+      font-size: 22px;
+    }
   }
 
   .letter-box.correct {
     border-color: #00ff99;
-    background: #033;
+    background: #003333;
+    color: #00ff99;
+  }
+
+  .btn-group {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   button {
-    margin: 5px;
-    padding: 10px 18px;
-    font-size: 15px;
+    padding: 12px 20px;
+    font-size: 16px;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
     transition: 0.2s;
+    white-space: nowrap;
+    /* 確保手機好點擊 */
+    min-width: 80px; 
   }
 
   .speak-btn { background: #ff8c00; color: #fff; }
   .check-btn { background: #3399ff; color: #fff; }
   .next-btn { background: #28a745; color: #fff; }
   .clear-btn { background: #6c757d; color: #fff; }
-  button:hover { opacity: 0.85; }
+  button:hover { opacity: 0.85; filter: brightness(1.1); }
+  button:active { transform: scale(0.98); }
 
   .stats {
     background: #000;
@@ -86,14 +124,19 @@
     font-size: 16px;
     text-align: left;
     margin-top: 15px;
+    width: 100%;
+    box-sizing: border-box;
   }
+  
+  .stats p { margin: 8px 0; }
 
   .progress-container {
     background: #111;
     border-radius: 12px;
     overflow: hidden;
     height: 18px;
-    margin-top: 6px;
+    margin-top: 10px;
+    border: 1px solid #333;
   }
 
   .progress-bar {
@@ -108,7 +151,8 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-    width: 500px;
+    width: 100%;
+    max-width: 500px;
   }
 
   .box {
@@ -117,23 +161,23 @@
     border-radius: 12px;
     padding: 15px 20px;
     box-shadow: 0 0 15px rgba(255,255,255,0.1);
+    box-sizing: border-box;
   }
 
-  h3 { margin-top: 0; color: #fff; }
+  h3 { margin-top: 0; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px; }
 
-  ul { padding-left: 20px; max-height: 150px; overflow-y: auto; }
+  ul { 
+    padding-left: 0; 
+    list-style: none;
+    max-height: 150px; 
+    overflow-y: auto; 
+  }
+  ul li {
+    padding: 5px 10px;
+    border-bottom: 1px solid #222;
+  }
   ul::-webkit-scrollbar { width: 8px; }
   ul::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-
-  select {
-    width: 160px;
-    height: 160px;
-    background: #000;
-    color: #fff;
-    border: 1px solid #fff;
-    border-radius: 6px;
-    padding: 4px;
-  }
 
   .library-container {
     display: flex;
@@ -143,30 +187,42 @@
     margin-top: 10px;
   }
 
+  select {
+    width: 100%;
+    height: 160px;
+    background: #111;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 5px;
+    font-size: 14px;
+  }
+
   .move-btns {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
+  }
+  
+  .move-btns button {
+    min-width: 40px;
+    padding: 10px;
+    background: #444;
+    color: #fff;
   }
 
   .reset-btn {
     margin-top: 10px;
     background-color: #dc3545;
     color: #fff;
-    font-weight: bold;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
+    width: 100%;
   }
 
   .history-reset-btn {
     margin-top: 8px;
     background-color: #6c757d;
     color: #fff;
-    font-weight: bold;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
+    width: 100%;
   }
 
   /* 左側底部按鈕黑底區 */
@@ -177,14 +233,38 @@
     gap: 10px;
     margin-top: 30px;
     padding-bottom: 20px;
+    flex-wrap: wrap;
   }
-  .down button {
-    padding: 10px 20px;
-    font-weight: bold;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    color: #fff;
+  
+  /* RWD 媒體查詢：當螢幕小於 900px (手機/平板直向) */
+  @media (max-width: 900px) {
+    .container {
+      flex-direction: column; /* 改為垂直排列 */
+      align-items: center;
+    }
+    
+    .left-panel, .right {
+      max-width: 100%; /* 佔滿寬度 */
+    }
+
+    .library-container {
+      flex-direction: column;
+    }
+    
+    select {
+      height: 120px; /* 手機上不用太高 */
+    }
+    
+    .move-btns {
+      flex-direction: row; /* 按鈕改橫排 */
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* 手機上調整輸入區間距 */
+    body {
+      padding: 10px;
+    }
   }
 </style>
 </head>
@@ -192,18 +272,20 @@
 
 <div class="container">
 
-  <!-- 左側拼字卡 + 統計 -->
-  <div>
+  <div class="left-panel">
     <div class="card">
       <div class="meaning" id="meaning">請按「下一題」開始</div>
+      
       <div class="input-area" id="inputArea"></div>
-      <div>
-        <button class="speak-btn" onclick="speakWord()">發音</button>
-        <button class="check-btn" onclick="checkAnswer()">檢查拼字</button>
-        <button class="clear-btn" onclick="clearInputs()">清空</button>
-        <button class="next-btn" onclick="nextWord()">下一題</button>
+      
+      <div class="btn-group">
+        <button class="speak-btn" onclick="speakWord()">🔊 發音</button>
+        <button class="check-btn" onclick="checkAnswer()">📝 檢查</button>
+        <button class="clear-btn" onclick="clearInputs()">❌ 清空</button>
+        <button class="next-btn" onclick="nextWord()">➡️ 下一題</button>
       </div>
-      <p id="resultMsg" style="margin-top:15px; font-size:18px; color:#ffd700;"></p>
+      
+      <p id="resultMsg" style="margin-top:15px; font-size:18px; color:#ffd700; min-height: 27px;"></p>
     </div>
 
     <div class="stats">
@@ -214,7 +296,6 @@
       <div class="progress-container"><div class="progress-bar" id="progress-bar"></div></div>
     </div>
 
-    <!-- 左側底部按鈕黑底區 -->
     <div class="down">
       <button onclick="window.open('https://issac-sjps.github.io/SpellingContest/', '_blank')" style="background:#3399ff;">首頁</button>
       <button onclick="window.open('https://issac-sjps.github.io/SpellingContest/600-word-input', '_blank')" style="background:#28a745;">拼單字輸入</button>
@@ -222,25 +303,32 @@
 
   </div>
 
-  <!-- 右側：歷史紀錄 + 題庫管理 -->
   <div class="right">
     <div class="box">
-      <h3>歷史紀錄</h3>
+      <h3>📜 歷史紀錄</h3>
       <ul id="historyList"></ul>
       <button class="history-reset-btn" onclick="resetHistory()">清空歷史紀錄</button>
     </div>
 
     <div class="box">
-      <h3>題庫管理</h3>
+      <h3>📚 題庫管理</h3>
       <div class="library-container">
-        <select id="mainLibrary" size="8" multiple></select>
-        <div class="move-btns">
-          <button onclick="moveToDeleted()">➡️</button>
-          <button onclick="moveToLibrary()">⬅️</button>
+        <div style="flex:1; width:100%;">
+            <div style="margin-bottom:5px; color:#aaa; font-size:12px;">現有題庫</div>
+            <select id="mainLibrary" size="8" multiple></select>
         </div>
-        <select id="deletedLibrary" size="8" multiple></select>
+        
+        <div class="move-btns">
+          <button onclick="moveToDeleted()" title="移除選定單字">⬇️ 移除</button>
+          <button onclick="moveToLibrary()" title="恢復選定單字">⬆️ 恢復</button>
+        </div>
+        
+        <div style="flex:1; width:100%;">
+            <div style="margin-bottom:5px; color:#aaa; font-size:12px;">已移除 (暫不練習)</div>
+            <select id="deletedLibrary" size="8" multiple></select>
+        </div>
       </div>
-      <button class="reset-btn" onclick="resetLibrary()">重置題庫</button>
+      <button class="reset-btn" onclick="resetLibrary()">⚠️ 重置回完整題庫</button>
     </div>
   </div>
 
@@ -877,7 +965,7 @@ function updateLibraryDisplay() {
 }
 
 function getRandomWord() {
-  if (activeLibrary.length === 0) { alert("題庫為空！"); return null; }
+  if (activeLibrary.length === 0) { alert("題庫為空！請從右側「已移除」清單恢復單字。"); return null; }
   return activeLibrary[Math.floor(Math.random() * activeLibrary.length)];
 }
 
@@ -898,6 +986,15 @@ function renderInputBoxes(word) {
     input.maxLength = 1;
     input.className = "letter-box";
     input.dataset.index = i;
+    
+    // 手機鍵盤優化：關閉自動完成、自動校正、拼字檢查
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("autocorrect", "off");
+    input.setAttribute("autocapitalize", "off");
+    input.setAttribute("spellcheck", "false");
+    
+    // 讓手機知道這是一般文字輸入
+    input.inputMode = "text";
 
     input.addEventListener("input", e => {
       e.target.value = e.target.value.toLowerCase();
@@ -908,14 +1005,20 @@ function renderInputBoxes(word) {
     input.addEventListener("keydown", e => {
       if (e.key === "Backspace" && !e.target.value) {
         const prev = e.target.previousElementSibling;
-        if (prev) prev.focus();
+        if (prev) {
+          prev.focus();
+          // 手機上 backspace 有時需要延遲一下確保游標位置
+          setTimeout(() => prev.value = "", 0);
+        }
       }
       if (e.key === "Enter") checkAnswer();
     });
 
     area.appendChild(input);
   }
-  area.querySelector("input").focus();
+  // 電腦版自動聚焦第一個，手機版為了不一直跳鍵盤擋畫面，可以選擇不自動聚焦，
+  // 但為了連續輸入方便，這裡保留自動聚焦。
+  setTimeout(() => area.querySelector("input").focus(), 100);
 }
 
 function clearInputs() {
@@ -926,8 +1029,13 @@ function clearInputs() {
 
 function speakWord() {
   if (!currentWord.en) return;
+  
+  // 停止當前語音，避免重疊
+  speechSynthesis.cancel();
+
   const msg = new SpeechSynthesisUtterance(currentWord.en);
   msg.lang = "en-US";
+  msg.rate = 0.8; // 稍微放慢一點語速
   speechSynthesis.speak(msg);
 }
 
@@ -936,12 +1044,15 @@ function checkAnswer() {
   const answer = Array.from(inputs).map(i => i.value.toLowerCase()).join("");
   const correctWord = currentWord.en.toLowerCase();
 
+  // 防止空答
+  if (answer.length === 0) return;
+
   total++;
   if (answer === correctWord) {
     correct++;
     document.getElementById("resultMsg").textContent = "✅ 正確！";
     inputs.forEach(i => i.classList.add("correct"));
-    setTimeout(nextWord, 600); // 自動換下一題
+    setTimeout(nextWord, 1000); // 答對後延遲 1 秒自動下一題
   } else {
     wrong++;
     document.getElementById("resultMsg").textContent = `❌ 錯誤，正確是：${currentWord.en}`;
@@ -965,10 +1076,10 @@ function updateStats() {
 function updateHistory() {
   const list = document.getElementById("historyList");
   list.innerHTML = "";
+  // 顯示最近 50 筆
   history.slice(-50).reverse().forEach(h => {
     const li = document.createElement("li");
-    li.textContent = `${h.zh} — ${h.en}`;
-    li.style.color = h.ok ? "#00ff99" : "#ff6666";
+    li.innerHTML = `<span style="color:${h.ok ? '#00ff99' : '#ff6666'}">${h.en}</span> <small style="color:#aaa">(${h.zh})</small>`;
     list.appendChild(li);
   });
 }
@@ -976,14 +1087,19 @@ function updateHistory() {
 function resetHistory() {
   if (confirm("確定要清空歷史紀錄嗎？")) {
     history = [];
+    total = 0; correct = 0; wrong = 0;
     saveAll();
     updateHistory();
+    updateStats();
+    document.getElementById("resultMsg").textContent = "";
   }
 }
 
 function moveToDeleted() {
   const select = document.getElementById("mainLibrary");
   const sel = Array.from(select.selectedOptions).map(o => parseInt(o.value));
+  if(sel.length === 0) return alert("請先選擇要移除的單字");
+  
   sel.sort((a,b)=>b-a).forEach(i => deletedLibrary.push(activeLibrary.splice(i,1)[0]));
   updateLibraryDisplay(); saveAll();
 }
@@ -991,12 +1107,14 @@ function moveToDeleted() {
 function moveToLibrary() {
   const select = document.getElementById("deletedLibrary");
   const sel = Array.from(select.selectedOptions).map(o => parseInt(o.value));
+  if(sel.length === 0) return alert("請先選擇要恢復的單字");
+
   sel.sort((a,b)=>b-a).forEach(i => activeLibrary.push(deletedLibrary.splice(i,1)[0]));
   updateLibraryDisplay(); saveAll();
 }
 
 function resetLibrary() {
-  if (confirm("確定要重置題庫嗎？")) {
+  if (confirm("確定要重置題庫嗎？這將會把所有單字放回練習清單。")) {
     activeLibrary = [...fullWords];
     deletedLibrary = [];
     saveAll();
@@ -1004,8 +1122,10 @@ function resetLibrary() {
   }
 }
 
+// 初始化
 updateLibraryDisplay();
 updateHistory();
+updateStats(); // 確保重新整理後統計數據還在 (如果之前有存的話，這裡目前是重置為0，若要保存統計需改localStorage邏輯，目前維持原樣)
 nextWord();
 </script>
 </body>
